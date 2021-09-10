@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace VTT2BDN
 {
-    class ImageSub
+    class SupSub
     {
         public string FileName { get; set; }
         public string StartTime { get; set; }
@@ -44,9 +44,13 @@ ${Events}
   </Events>
 </BDN>";
 
-        public static string GetBDN(string vttContent, int resW, int resH, double frameRate, int paddingBottom, int paddingSide, string folder)
+        public static void ConvertToBDN(string vttPath, int resW, int resH, double frameRate, int paddingBottom, int paddingSide, bool generateSup)
         {
-            var subs = ParseImageSubFromVtts(ParseVttsFromString(vttContent, folder), resW, resH, frameRate, paddingBottom, paddingSide, folder);
+            var folder = Path.GetDirectoryName(Path.GetFullPath(vttPath));
+            var name = Path.GetFileNameWithoutExtension(vttPath);
+            var vttContent = File.ReadAllText(vttPath);
+
+            var subs = ParseSupSubFromVtts(ParseVttsFromString(vttContent, folder), resW, resH, frameRate, paddingBottom, paddingSide, folder);
             StringBuilder sb = new StringBuilder();
             foreach (var s in subs)
             {
@@ -54,18 +58,30 @@ ${Events}
                 sb.AppendLine($"      <Graphic Width=\"{s.Width}\" Height=\"{s.Height}\" X=\"{s.X}\" Y=\"{s.Y}\">{s.FileName}</Graphic>");
                 sb.AppendLine($"    </Event>");
             }
-            return XML_STRACTURE
+            var xml = XML_STRACTURE
                 .Replace("${VideoFormat}", $"{resW}x{resH}")
                 .Replace("${FrameRate}", frameRate.ToString())
                 .Replace("${FirstEventInTC}", subs.First().StartTime)
                 .Replace("${LastEventOutTC}", subs.Last().EndTime)
                 .Replace("${NumberofEvents}", subs.Count().ToString())
                 .Replace("${Events}", sb.ToString().TrimEnd());
+
+            var output = Path.Combine(folder, $"{name}.xml");
+            File.WriteAllText(output, xml, new UTF8Encoding(false));
+            Console.WriteLine("Done XML.." + output);
+
+            if (generateSup)
+            {
+                //var outputSup = Path.Combine(folder, $"{name}.sup");
+                //var outputSup = "test.sup";
+                //SupWriter.WriteSupFromSupSubs(subs, resW, resH, outputSup, frameRate);
+                //Console.WriteLine("Done SUP.." + outputSup);
+            }
         }
 
-        private static List<ImageSub> ParseImageSubFromVtts(IEnumerable<VttSub> subs, int resW, int resH, double frameRate, int paddingBottom, int paddingSide, string folder)
+        private static List<SupSub> ParseSupSubFromVtts(IEnumerable<VttSub> subs, int resW, int resH, double frameRate, int paddingBottom, int paddingSide, string folder)
         {
-            var list = new List<ImageSub>();
+            var list = new List<SupSub>();
             foreach (var s in subs)
             {
                 var startFrame = (int)Math.Round(s.StartTime.Milliseconds / (1000.0 / frameRate));
@@ -73,23 +89,23 @@ ${Events}
                 var imgW = 0;
                 var imgH = 0;
                 (imgW, imgH) = GetImgResolution(Path.Combine(folder, s.Payload));
-                var newSub = new ImageSub();
-                newSub.Width = imgW;
-                newSub.Height = imgH;
-                newSub.StartTime = string.Format("{0:00}:{1:00}:{2:00}:{3:00}", s.StartTime.Hours, s.StartTime.Minutes, s.StartTime.Seconds, startFrame);
-                newSub.EndTime = string.Format("{0:00}:{1:00}:{2:00}:{3:00}", s.EndTime.Hours, s.EndTime.Minutes, s.EndTime.Seconds, endFrame);
-                newSub.X = (int)((resW / 2.0) - (imgW / 2.0));
-                newSub.Y = resH - imgH - paddingBottom;
+                var sup = new SupSub();
+                sup.Width = imgW;
+                sup.Height = imgH;
+                sup.StartTime = string.Format("{0:00}:{1:00}:{2:00}:{3:00}", s.StartTime.Hours, s.StartTime.Minutes, s.StartTime.Seconds, startFrame);
+                sup.EndTime = string.Format("{0:00}:{1:00}:{2:00}:{3:00}", s.EndTime.Hours, s.EndTime.Minutes, s.EndTime.Seconds, endFrame);
+                sup.X = (int)((resW / 2.0) - (imgW / 2.0));
+                sup.Y = resH - imgH - paddingBottom;
                 if (s.Style.Contains("line-right"))
                 {
-                    newSub.X = resW - paddingSide - imgW;
+                    sup.X = resW - paddingSide - imgW;
                 }
                 else if (s.Style.Contains("line-left"))
                 {
-                    newSub.X = paddingSide;
+                    sup.X = paddingSide;
                 }
-                newSub.FileName = s.Payload;
-                list.Add(newSub);
+                sup.FileName = s.Payload;
+                list.Add(sup);
             }
             return list;
         }
