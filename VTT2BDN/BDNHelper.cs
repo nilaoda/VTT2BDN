@@ -117,7 +117,7 @@ ${Events}
                     if (payload.StartsWith("http"))
                     {
                         var filename = index++.ToString("0000") + ".png";
-                        Console.WriteLine($"Downloadong: {payload} ==> {filename}");
+                        Console.WriteLine($"Downloading: {payload} ==> {filename}");
                         new WebClient().DownloadFile(payload, filename);
                         payload = filename;
                     }
