@@ -44,9 +44,9 @@ ${Events}
   </Events>
 </BDN>";
 
-        public static string GetBDN(string vttContent, int resW, int resH, double frameRate, int paddingBottom = 20)
+        public static string GetBDN(string vttContent, int resW, int resH, double frameRate, int paddingBottom, int paddingSide, string folder)
         {
-            var subs = ParseImageSubFromVtts(ParseVttsFromString(vttContent), resW, resH, frameRate, paddingBottom);
+            var subs = ParseImageSubFromVtts(ParseVttsFromString(vttContent, folder), resW, resH, frameRate, paddingBottom, paddingSide, folder);
             StringBuilder sb = new StringBuilder();
             foreach (var s in subs)
             {
@@ -63,7 +63,7 @@ ${Events}
                 .Replace("${Events}", sb.ToString().TrimEnd());
         }
 
-        private static List<ImageSub> ParseImageSubFromVtts(IEnumerable<VttSub> subs, int resW, int resH, double frameRate, int paddingBottom)
+        private static List<ImageSub> ParseImageSubFromVtts(IEnumerable<VttSub> subs, int resW, int resH, double frameRate, int paddingBottom, int paddingSide, string folder)
         {
             var list = new List<ImageSub>();
             foreach (var s in subs)
@@ -72,7 +72,7 @@ ${Events}
                 var endFrame = (int)Math.Round(s.EndTime.Milliseconds / (1000.0 / frameRate));
                 var imgW = 0;
                 var imgH = 0;
-                (imgW, imgH) = GetImgResolution(s.Payload);
+                (imgW, imgH) = GetImgResolution(Path.Combine(folder, s.Payload));
                 var newSub = new ImageSub();
                 newSub.Width = imgW;
                 newSub.Height = imgH;
@@ -80,6 +80,14 @@ ${Events}
                 newSub.EndTime = string.Format("{0:00}:{1:00}:{2:00}:{3:00}", s.EndTime.Hours, s.EndTime.Minutes, s.EndTime.Seconds, endFrame);
                 newSub.X = (int)((resW / 2.0) - (imgW / 2.0));
                 newSub.Y = resH - imgH - paddingBottom;
+                if (s.Style.Contains("line-right"))
+                {
+                    newSub.X = resW - paddingSide - imgW;
+                }
+                else if (s.Style.Contains("line-left"))
+                {
+                    newSub.X = paddingSide;
+                }
                 newSub.FileName = s.Payload;
                 list.Add(newSub);
             }
@@ -92,7 +100,7 @@ ${Events}
             return (bitmap.Width, bitmap.Height);
         }
 
-        private static List<VttSub> ParseVttsFromString(string vttContent)
+        private static List<VttSub> ParseVttsFromString(string vttContent, string folder)
         {
             if (!vttContent.Trim().StartsWith("WEBVTT"))
                 throw new Exception("Bad vtt!");
@@ -113,12 +121,12 @@ ${Events}
 
                 if (needPayload)
                 {
-                    var payload = line;
+                    var payload = line.Trim();
                     if (payload.StartsWith("http"))
                     {
                         var filename = index++.ToString("0000") + ".png";
                         Console.WriteLine($"Downloading: {payload} ==> {filename}");
-                        new WebClient().DownloadFile(payload, filename);
+                        new WebClient().DownloadFile(payload, Path.Combine(folder, filename));
                         payload = filename;
                     }
                     var arr = Regex.Split(timeLine.Replace("-->", ""), "\\s").Where(s => !string.IsNullOrEmpty(s)).ToList();
@@ -149,6 +157,24 @@ ${Events}
                 time += (int)Math.Pow(60, i) * Convert.ToInt32(t[i]) * 1000;
             }
             return TimeSpan.FromMilliseconds(time);
+        }
+
+        public static void PreProcess(string path)
+        {
+            var index = 0;
+            StringBuilder sb = new StringBuilder();
+            foreach (var item in File.ReadAllLines(path))
+            {
+                if(item.StartsWith("http"))
+                {
+                    sb.AppendLine(index++.ToString("0000") + ".png");
+                }else
+                {
+                    sb.AppendLine(item);
+                }
+            }
+            var fullPath = Path.GetFullPath(path);
+            File.WriteAllText(Path.Combine(Path.GetDirectoryName(fullPath), Path.GetFileNameWithoutExtension(fullPath) + "_pre.vtt"), sb.ToString());
         }
     }
 }
