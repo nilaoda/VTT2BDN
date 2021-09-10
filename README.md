@@ -48,3 +48,10 @@ WEBVTT
 # Sup
 
 You can use [Subtitle Edit](https://github.com/SubtitleEdit/subtitleedit) to convert BDN(xml+png) to Blu-ray Sup(.sup).
+
+
+1. `Tools` - `Batch convert...`, then drag the `.xml` to input listbox.
+
+2. Check `Save in source file folder`, and then change `Format` to `Blu-ray sup`.
+
+3. **IMPORTANT!!** Open `Settings` dialog, set correct `Video res` and `Frame rate`, otherwise Subtitle Edit will output 24fps and 1080p by default.
