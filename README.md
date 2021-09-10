@@ -44,3 +44,7 @@ WEBVTT
   </Events>
 </BDN>
 ```
+
+# Sup
+
+You can use [Subtitle Edit](https://github.com/SubtitleEdit/subtitleedit) to convert BDN(xml+png) to Blu-ray Sup(.sup).
