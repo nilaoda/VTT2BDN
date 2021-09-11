@@ -14,5 +14,5 @@
     <PackageReference Condition="'$(RuntimeIdentifier)'=='win-arm64'" Include="runtime.win-x64.Microsoft.DotNet.ILCompiler" Version="$(NativeAotCompilerVersion)" />
     <PackageReference Condition="'$(RuntimeIdentifier)'=='linux-arm64'" Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler" Version="$(NativeAotCompilerVersion)" />
   </ItemGroup>
-
+  
 </Project>

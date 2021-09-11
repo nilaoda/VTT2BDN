@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Nikse.SubtitleEdit.Core.BluRaySup;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -15,10 +17,15 @@ namespace VTT2BDN
         public string FileName { get; set; }
         public string StartTime { get; set; }
         public string EndTime { get; set; }
+        public TimeSpan ExactStartTime { get; set; }
+        public TimeSpan ExactEndTime { get; set; }
+        public int StartTimeForWrite => (int)(ExactStartTime.TotalMilliseconds * 90.0);
+        public int EndTimeForWrite => (int)(ExactEndTime.TotalMilliseconds * 90.0);
         public int Width { get; set; }
         public int Height { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
+        public Bitmap Bitmap { get; set; }
     }
 
     class VttSub
@@ -46,6 +53,7 @@ ${Events}
 
         public static void ConvertToBDN(string vttPath, int resW, int resH, double frameRate, int paddingBottom, int paddingSide, bool generateSup)
         {
+            Console.WriteLine("Start processing...");
             var folder = Path.GetDirectoryName(Path.GetFullPath(vttPath));
             var name = Path.GetFileNameWithoutExtension(vttPath);
             var vttContent = File.ReadAllText(vttPath);
@@ -72,10 +80,20 @@ ${Events}
 
             if (generateSup)
             {
-                //var outputSup = Path.Combine(folder, $"{name}.sup");
+                var outputSup = Path.Combine(folder, $"{name}.sup");
+                using var stream = new FileStream(outputSup, FileMode.Create);
                 //var outputSup = "test.sup";
                 //SupWriter.WriteSupFromSupSubs(subs, resW, resH, outputSup, frameRate);
-                //Console.WriteLine("Done SUP.." + outputSup);
+                int index = 1;
+                foreach (var sup in subs)
+                {
+                    Console.Write("\r" + new string(' ', Console.WindowWidth - 1) + "\r");
+                    Console.Write($"Writing Sup Frame: {index}/{subs.Count}");
+                    var bytes = BluRaySupPicture.CreateSupFrame(sup, resW, resH, frameRate, index++ * 2);
+                    stream.Write(bytes);
+                }
+                Console.WriteLine();
+                Console.WriteLine("Done SUP.." + outputSup);
             }
         }
 
@@ -86,14 +104,17 @@ ${Events}
             {
                 var startFrame = (int)Math.Round(s.StartTime.Milliseconds / (1000.0 / frameRate));
                 var endFrame = (int)Math.Round(s.EndTime.Milliseconds / (1000.0 / frameRate));
-                var imgW = 0;
-                var imgH = 0;
-                (imgW, imgH) = GetImgResolution(Path.Combine(folder, s.Payload));
+                Bitmap bitmap = GetImg(Path.Combine(folder, s.Payload));
+                var imgW = bitmap.Width;
+                var imgH = bitmap.Height;
                 var sup = new SupSub();
+                sup.Bitmap = bitmap;
                 sup.Width = imgW;
                 sup.Height = imgH;
                 sup.StartTime = string.Format("{0:00}:{1:00}:{2:00}:{3:00}", s.StartTime.Hours, s.StartTime.Minutes, s.StartTime.Seconds, startFrame);
                 sup.EndTime = string.Format("{0:00}:{1:00}:{2:00}:{3:00}", s.EndTime.Hours, s.EndTime.Minutes, s.EndTime.Seconds, endFrame);
+                sup.ExactStartTime = s.StartTime;
+                sup.ExactEndTime = s.EndTime;
                 sup.X = (int)((resW / 2.0) - (imgW / 2.0));
                 sup.Y = resH - imgH - paddingBottom;
                 if (s.Style.Contains("line-right"))
@@ -110,10 +131,9 @@ ${Events}
             return list;
         }
 
-        private static (int, int) GetImgResolution(string path)
+        private static Bitmap GetImg(string path)
         {
-            Bitmap bitmap = new Bitmap(path);
-            return (bitmap.Width, bitmap.Height);
+            return new Bitmap(path);
         }
 
         private static List<VttSub> ParseVttsFromString(string vttContent, string folder)
