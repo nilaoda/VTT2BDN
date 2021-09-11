@@ -45,7 +45,42 @@ WEBVTT
 </BDN>
 ```
 
-# Sup
+# Useage
+
+```
+VTT2BDN
+  Convert vtt with png to BDN xml
+
+Usage:
+  VTT2BDN [options] <vttPath>
+
+Arguments:
+  <vttPath>  Your vtt file path
+
+Options:
+  --frame-rate <frame-rate>          Frame rate. Supported: 23.976;24;25;29.97;30;50;59.94 [default: 29.97]
+  --width <width>                    Set video width [default: 1920]
+  --height <height>                  Set video height [default: 1080]
+  --padding-bottom <padding-bottom>  Padding of bottom [default: 0]
+  --padding-side <padding-side>      Padding of left and right [default: 0]
+  --generate-sup                     Generate sup after xml produced [default: True]
+  --version                          Show version information
+  -?, -h, --help                     Show help and usage information
+```
+
+# Examples
+```
+#1920x1080 29.97fps XML Only
+VTT2BDN --generate-sup False D:\my.vtt
+
+#1920x1080 29.97fps XML+Sup
+VTT2BDN D:\my.vtt
+
+#3840x2160 25fps XML+Sup
+VTT2BDN --width 3840 --height 2160 --frame-rate 25 D:\my.vtt
+```
+
+# Generate Sup Manually
 
 You can use [Subtitle Edit](https://github.com/SubtitleEdit/subtitleedit) to convert BDN(xml+png) to Blu-ray Sup(.sup).
 
@@ -55,3 +90,7 @@ You can use [Subtitle Edit](https://github.com/SubtitleEdit/subtitleedit) to con
 2. Check `Save in source file folder`, and then change `Format` to `Blu-ray sup`.
 
 3. **IMPORTANT!!** Open `Settings` dialog, set correct `Video res` and `Frame rate`, otherwise Subtitle Edit will output 24fps and 1080p by default. And set `Bottom margin` and `Left/right margin` to `0`
+
+# Thanks
+
+This repo use some code from [Subtitle Edit](https://github.com/SubtitleEdit/subtitleedit) to generate Blu-ray Sup(.sup). Thanks the authors.
