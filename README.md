@@ -57,7 +57,7 @@ WEBVTT
 
 
 
-# Useage
+# Usage
 
 ```
 VTT2BDN
